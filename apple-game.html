@@ -20,6 +20,7 @@
             min-height: 100vh;
             padding: 20px;
             overflow-x: auto;
+            overscroll-behavior: none;
         }
 
         .game-container {
@@ -73,6 +74,9 @@
             border-radius: 15px;
             user-select: none;
             position: relative;
+            touch-action: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
         }
         
         .selection-preview {
@@ -465,6 +469,11 @@
                     appleDiv.addEventListener('mouseenter', dragOver);
                     appleDiv.addEventListener('mouseup', endDrag);
                     
+                    // 터치 이벤트
+                    appleDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
+                    appleDiv.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    appleDiv.addEventListener('touchend', handleTouchEnd, { passive: false });
+                    
                     gameBoard.appendChild(appleDiv);
                 } else {
                     // 빈 공간 유지
@@ -511,6 +520,51 @@
                 checkSum();
             }
         });
+
+        // 터치 이벤트 핸들러
+        function handleTouchStart(e) {
+            e.preventDefault();
+            isDragging = true;
+            const appleId = parseInt(e.currentTarget.dataset.id);
+            dragStartId = appleId;
+            selectedApples = [];
+            selectApple(appleId);
+            createSelectionPreview();
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (isDragging && dragStartId !== null) {
+                const touch = e.touches[0];
+                const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                
+                if (element && element.classList.contains('apple')) {
+                    const appleId = parseInt(element.dataset.id);
+                    updateSelection_directional(appleId);
+                }
+            }
+        }
+
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            if (isDragging) {
+                isDragging = false;
+                dragStartId = null;
+                removeSelectionPreview();
+                checkSum();
+            }
+        }
+
+        // 전역 터치 종료 이벤트
+        document.addEventListener('touchend', (e) => {
+            if (isDragging) {
+                e.preventDefault();
+                isDragging = false;
+                dragStartId = null;
+                removeSelectionPreview();
+                checkSum();
+            }
+        }, { passive: false });
 
         // 사과 선택
         function selectApple(appleId) {
