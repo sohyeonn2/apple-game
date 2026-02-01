@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사과 게임 🍎</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .game-container {
+            text-align: center;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: fit-content;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+        }
+
+        .info-panel {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            min-width: 150px;
+        }
+
+        .info-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(20, 35px);
+            gap: 4px;
+            margin: 20px auto;
+            width: fit-content;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            user-select: none;
+            position: relative;
+        }
+        
+        .selection-preview {
+            position: absolute;
+            border: 3px solid rgba(243, 156, 18, 0.6);
+            background: rgba(243, 156, 18, 0.2);
+            pointer-events: none;
+            border-radius: 10px;
+            z-index: 10;
+        }
+
+        .apple {
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .apple::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 8px;
+            background: #8B4513;
+            border-radius: 0 50% 50% 50%;
+            transform: translateX(-50%) rotate(-45deg);
+        }
+
+        .apple::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            right: 8px;
+            width: 10px;
+            height: 8px;
+            background: #4CAF50;
+            border-radius: 50% 0;
+            transform: rotate(20deg);
+        }
+
+        .apple:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        .apple:hover::before {
+            top: -4px;
+        }
+
+        .apple:hover::after {
+            top: -3px;
+        }
+
+        .apple-emoji {
+            display: none;
+        }
+
+        .apple-number {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            z-index: 1;
+        }
+
+        .apple.selected {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            transform: scale(1.1);
+            box-shadow: 0 8px 16px rgba(243, 156, 18, 0.5);
+            animation: pulse 0.5s ease-in-out infinite;
+        }
+
+        .apple.selected::before {
+            background: #654321;
+        }
+
+        .apple.selected::after {
+            background: #8BC34A;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1.1);
+            }
+            50% {
+                transform: scale(1.15);
+            }
+        }
+
+        .apple.removing {
+            animation: removeAnimation 0.5s ease-out forwards;
+        }
+
+        @keyframes removeAnimation {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.3) rotate(180deg);
+            }
+            100% {
+                transform: scale(0) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .current-sum {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .current-sum.success {
+            background: #d4edda;
+            color: #155724;
+            animation: successFlash 0.5s;
+        }
+
+        .current-sum.error {
+            background: #f8d7da;
+            color: #721c24;
+            animation: shake 0.5s;
+        }
+
+        @keyframes successFlash {
+            0%, 100% { background: #d4edda; }
+            50% { background: #a3d9a5; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 5px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .instructions {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .instructions h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            list-style-position: inside;
+            color: #555;
+        }
+
+        .instructions li {
+            margin: 5px 0;
+        }
+
+        /* 회전 요청 메시지 */
+        .rotate-message {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .rotate-icon {
+            font-size: 5rem;
+            margin-bottom: 2rem;
+            animation: rotate 2s infinite ease-in-out;
+        }
+
+        @keyframes rotate {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
+        }
+
+        .rotate-message h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .rotate-message p {
+            font-size: 1.2rem;
+            opacity: 0.8;
+        }
+
+        /* 가로 모드가 필요한 경우 */
+        @media (max-width: 1000px) and (orientation: portrait) {
+            .rotate-message {
+                display: flex;
+            }
+            .game-container {
+                display: none;
+            }
+        }
+
+        /* 작은 가로 화면에서도 조정 */
+        @media (max-height: 600px) and (orientation: landscape) {
+            body {
+                padding: 10px;
+            }
+            .game-container {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 1.5rem;
+                margin-bottom: 10px;
+            }
+            .info-panel {
+                margin-bottom: 10px;
+            }
+            .info-box {
+                padding: 10px 20px;
+                font-size: 1rem;
+                min-width: 100px;
+            }
+            .current-sum {
+                font-size: 1.2rem;
+                margin: 10px 0;
+                padding: 10px;
+            }
+            .instructions {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+            .game-board {
+                margin: 10px auto;
+                padding: 10px;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <!-- 회전 요청 메시지 -->
+    <div class="rotate-message">
+        <div class="rotate-icon">📱↻</div>
+        <h2>디바이스를 가로로 회전해주세요</h2>
+        <p>이 게임은 가로 모드에서 플레이할 수 있습니다</p>
+    </div>
+
+    <div class="game-container">
+        <h1>🍎 사과 게임 🍎</h1>
+        
+        <div class="info-panel">
+            <div class="info-box">
+                <div class="info-label">점수</div>
+                <div id="score">0</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">제거한 사과</div>
+                <div id="removed">0</div>
+            </div>
+        </div>
+
+        <div class="current-sum" id="currentSum">
+            합계: 0
+        </div>
+
+        <div class="game-board" id="gameBoard"></div>
+
+        <div>
+            <button id="resetBtn">새 게임</button>
+            <button id="clearSelectionBtn">선택 취소</button>
+        </div>
+
+        <div class="instructions">
+            <h3>🎮 게임 방법</h3>
+            <ul>
+                <li>마우스를 드래그하여 직사각형 영역의 사과들을 선택하세요</li>
+                <li>선택한 사과들의 숫자 합이 정확히 10이 되면 사과가 사라집니다</li>
+                <li>1줄, 2x2, 3x4 등 다양한 크기의 직사각형 선택이 가능합니다</li>
+                <li>사과 하나당 10점을 얻습니다</li>
+                <li>드래그를 멈추면 자동으로 합계가 계산됩니다</li>
+                <li>드래그 중에는 선택 영역이 미리보기로 표시됩니다</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const gameBoard = document.getElementById('gameBoard');
+        const currentSumDiv = document.getElementById('currentSum');
+        const scoreDiv = document.getElementById('score');
+        const removedDiv = document.getElementById('removed');
+        const resetBtn = document.getElementById('resetBtn');
+        const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+
+        let apples = [];
+        let selectedApples = [];
+        let isDragging = false;
+        let score = 0;
+        let removedCount = 0;
+        let dragStartId = null;
+        let selectionPreview = null;
+
+        const ROWS = 10;
+        const COLS = 20;
+
+        // 게임 초기화
+        function initGame() {
+            apples = [];
+            selectedApples = [];
+            score = 0;
+            removedCount = 0;
+            updateScore();
+            createApples();
+            renderBoard();
+        }
+
+        // 사과 생성
+        function createApples() {
+            for (let i = 0; i < ROWS * COLS; i++) {
+                apples.push({
+                    id: i,
+                    number: Math.floor(Math.random() * 9) + 1, // 1-9 랜덤
+                    removed: false
+                });
+            }
+        }
+
+        // 보드 렌더링
+        function renderBoard() {
+            gameBoard.innerHTML = '';
+            apples.forEach(apple => {
+                if (!apple.removed) {
+                    const appleDiv = document.createElement('div');
+                    appleDiv.className = 'apple';
+                    appleDiv.dataset.id = apple.id;
+                    
+                    const emojiDiv = document.createElement('div');
+                    emojiDiv.className = 'apple-emoji';
+                    emojiDiv.textContent = '🍎';
+                    
+                    const numberDiv = document.createElement('div');
+                    numberDiv.className = 'apple-number';
+                    numberDiv.textContent = apple.number;
+                    
+                    appleDiv.appendChild(emojiDiv);
+                    appleDiv.appendChild(numberDiv);
+                    
+                    // 마우스 이벤트
+                    appleDiv.addEventListener('mousedown', startDrag);
+                    appleDiv.addEventListener('mouseenter', dragOver);
+                    appleDiv.addEventListener('mouseup', endDrag);
+                    
+                    gameBoard.appendChild(appleDiv);
+                } else {
+                    // 빈 공간 유지
+                    const emptyDiv = document.createElement('div');
+                    gameBoard.appendChild(emptyDiv);
+                }
+            });
+        }
+
+        // 드래그 시작
+        function startDrag(e) {
+            isDragging = true;
+            const appleId = parseInt(e.currentTarget.dataset.id);
+            dragStartId = appleId;
+            selectedApples = [];
+            selectApple(appleId);
+            createSelectionPreview();
+        }
+
+        // 드래그 중
+        function dragOver(e) {
+            if (isDragging && dragStartId !== null) {
+                const appleId = parseInt(e.currentTarget.dataset.id);
+                updateSelection_directional(appleId);
+            }
+        }
+
+        // 드래그 종료
+        function endDrag() {
+            if (isDragging) {
+                isDragging = false;
+                dragStartId = null;
+                removeSelectionPreview();
+                checkSum();
+            }
+        }
+
+        // 전역 마우스업 이벤트 (보드 밖에서 마우스를 떼는 경우)
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                dragStartId = null;
+                removeSelectionPreview();
+                checkSum();
+            }
+        });
+
+        // 사과 선택
+        function selectApple(appleId) {
+            if (!selectedApples.includes(appleId)) {
+                selectedApples.push(appleId);
+                updateSelection();
+            }
+        }
+
+        // 방향성 선택 업데이트 (직사각형 형태)
+        function updateSelection_directional(currentId) {
+            if (dragStartId === null) return;
+
+            const startRow = Math.floor(dragStartId / COLS);
+            const startCol = dragStartId % COLS;
+            const currentRow = Math.floor(currentId / COLS);
+            const currentCol = currentId % COLS;
+
+            // 같은 위치면 리턴
+            if (startRow === currentRow && startCol === currentCol) {
+                return;
+            }
+
+            // 직사각형 영역의 최소/최대 행과 열 계산
+            const minRow = Math.min(startRow, currentRow);
+            const maxRow = Math.max(startRow, currentRow);
+            const minCol = Math.min(startCol, currentCol);
+            const maxCol = Math.max(startCol, currentCol);
+
+            selectedApples = [];
+
+            // 직사각형 영역의 모든 사과 선택
+            for (let row = minRow; row <= maxRow; row++) {
+                for (let col = minCol; col <= maxCol; col++) {
+                    const id = row * COLS + col;
+                    if (id < apples.length && !apples[id].removed) {
+                        selectedApples.push(id);
+                    }
+                }
+            }
+
+            updateSelectionPreview(minRow, minCol, maxRow, maxCol);
+            updateSelection();
+        }
+
+        // 선택 영역 미리보기 생성
+        function createSelectionPreview() {
+            if (!selectionPreview) {
+                selectionPreview = document.createElement('div');
+                selectionPreview.className = 'selection-preview';
+                gameBoard.appendChild(selectionPreview);
+            }
+        }
+
+        // 선택 영역 미리보기 업데이트
+        function updateSelectionPreview(startRow, startCol, endRow, endCol) {
+            if (!selectionPreview) return;
+
+            const firstApple = document.querySelector(`[data-id="${startRow * COLS + startCol}"]`);
+            const lastApple = document.querySelector(`[data-id="${endRow * COLS + endCol}"]`);
+
+            if (firstApple && lastApple) {
+                const firstRect = firstApple.getBoundingClientRect();
+                const lastRect = lastApple.getBoundingClientRect();
+                const boardRect = gameBoard.getBoundingClientRect();
+
+                const left = Math.min(firstRect.left, lastRect.left) - boardRect.left;
+                const top = Math.min(firstRect.top, lastRect.top) - boardRect.top;
+                const right = Math.max(firstRect.right, lastRect.right) - boardRect.left;
+                const bottom = Math.max(firstRect.bottom, lastRect.bottom) - boardRect.top;
+
+                selectionPreview.style.left = left + 'px';
+                selectionPreview.style.top = top + 'px';
+                selectionPreview.style.width = (right - left) + 'px';
+                selectionPreview.style.height = (bottom - top) + 'px';
+                selectionPreview.style.display = 'block';
+            }
+        }
+
+        // 선택 영역 미리보기 제거
+        function removeSelectionPreview() {
+            if (selectionPreview) {
+                selectionPreview.style.display = 'none';
+            }
+        }
+
+        // 선택 상태 업데이트
+        function updateSelection() {
+            // 모든 사과의 선택 상태 초기화
+            document.querySelectorAll('.apple').forEach(div => {
+                div.classList.remove('selected');
+            });
+
+            // 선택된 사과 표시
+            selectedApples.forEach(id => {
+                const appleDiv = document.querySelector(`[data-id="${id}"]`);
+                if (appleDiv) {
+                    appleDiv.classList.add('selected');
+                }
+            });
+
+            // 현재 합계 표시
+            const sum = calculateSum();
+            currentSumDiv.textContent = `합계: ${sum}`;
+            currentSumDiv.className = 'current-sum';
+        }
+
+        // 합계 계산
+        function calculateSum() {
+            return selectedApples.reduce((sum, id) => {
+                const apple = apples.find(a => a.id === id);
+                return sum + (apple ? apple.number : 0);
+            }, 0);
+        }
+
+        // 합계 체크
+        function checkSum() {
+            if (selectedApples.length === 0) return;
+
+            const sum = calculateSum();
+            
+            if (sum === 10) {
+                // 성공!
+                currentSumDiv.className = 'current-sum success';
+                removeSelectedApples();
+                showMessage('축하합니다! 🎉', `${selectedApples.length}개의 사과를 제거했습니다!`);
+            } else {
+                // 실패
+                currentSumDiv.className = 'current-sum error';
+                clearSelection();
+            }
+        }
+
+        // 선택된 사과 제거
+        function removeSelectedApples() {
+            // 제거 애니메이션
+            selectedApples.forEach(id => {
+                const appleDiv = document.querySelector(`[data-id="${id}"]`);
+                if (appleDiv) {
+                    appleDiv.classList.add('removing');
+                }
+                const apple = apples.find(a => a.id === id);
+                if (apple) {
+                    apple.removed = true;
+                }
+            });
+
+            // 점수 업데이트
+            score += selectedApples.length * 10;
+            removedCount += selectedApples.length;
+            updateScore();
+
+            // 애니메이션 후 보드 재렌더링
+            setTimeout(() => {
+                selectedApples = [];
+                renderBoard();
+                currentSumDiv.textContent = '합계: 0';
+                currentSumDiv.className = 'current-sum';
+            }, 500);
+        }
+
+        // 선택 취소
+        function clearSelection() {
+            selectedApples = [];
+            dragStartId = null;
+            removeSelectionPreview();
+            updateSelection();
+            currentSumDiv.textContent = '합계: 0';
+            currentSumDiv.className = 'current-sum';
+        }
+
+        // 점수 업데이트
+        function updateScore() {
+            scoreDiv.textContent = score;
+            removedDiv.textContent = removedCount;
+        }
+
+        // 버튼 이벤트
+        resetBtn.addEventListener('click', initGame);
+        clearSelectionBtn.addEventListener('click', clearSelection);
+
+        // 게임 시작
+        initGame();
+    </script>
+</body>
+</html>
